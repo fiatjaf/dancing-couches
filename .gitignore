@@ -1,0 +1,9 @@
+node_modules
+npm-debug.log
+*.pyc
+*.pyo
+*.swo
+*.swp
+.env
+venv
+__pycache__
