@@ -277,7 +277,6 @@ def bulkdocs(docs):
         maybe_winning = []
         for id, docs in docsbyid.items():
             # first we get the bigger rev of the revs sent for each document
-            print(docs)
             local_winning = sorted(docs, key=lambda x: x['_rev'])[-1]
             maybe_winning.append(local_winning)
 
