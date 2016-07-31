@@ -18,7 +18,15 @@ def index():
 
 @app.route('/<appid>/')
 def couch_server_info(appid):
-    return '{"couchdb": "Welcome", "version": "0", "vendor": {"name": "fake couchdb", "version": "5462", "variant":  "crazy"}}'
+    return jsonify({
+        "couchdb": "Welcome",
+        "version": "0",
+        "vendor": {
+            "name": "musical-couches",
+            "version": "1",
+            "variant":  "crazy"
+        }
+    })
 
 
 @app.route('/<appid>/<dbname>/')
@@ -27,21 +35,27 @@ def db_info(appid, dbname):
     return jsonify(couch.info())
 
 
-@app.route('/<appid>/<dbname>/_local/<localid>', methods=['GET', 'PUT'])
+@app.route('/<appid>/<dbname>/_local/<path:localid>', methods=['GET', 'PUT'])
 def db_local(appid, dbname, localid):
     g.app = Application(appid, dbname)
     if request.method == 'GET':
         return jsonify(couch.local_get(localid))
     else:
         doc = request.get_json()
-        return jsonify(couch.local_put(localid, doc))
+        ok, rev = couch.local_put(localid, doc)
+        return jsonify({
+            'ok': ok,
+            'rev': rev,
+            'id': id
+        })
 
 
 @app.route('/<appid>/<dbname>/_changes', methods=['GET', 'POST'])
 def db_changes(appid, dbname):
     g.app = Application(appid, dbname)
     since = int(request.args.get('since') or 0)
-    return jsonify(couch.changes(since))
+    limit = int(request.args.get('limit') or 100)
+    return jsonify(couch.changes(since, limit))
 
 
 @app.route('/<appid>/<dbname>/_revs_diff', methods=['POST'])
@@ -77,17 +91,29 @@ def db_bulkget(appid, dbname):
 @app.route('/<appid>/<dbname>/_bulk_docs', methods=['POST'])
 def db_bulkdocs(appid, dbname):
     g.app = Application(appid, dbname)
-    docs = request.get_json()['docs']
+    body = request.get_json()
+    docs = body['docs']
+    new_edits = body.get('new_edits', True)
 
-    local = []
-    for i, doc in enumerate(docs):
-        if doc['_id'].startswith('_local/'):
-            couch.local_put(doc['_id'], doc)
-            local.append(i)
-    for i in local:
-        docs.pop(i)
+    resp = []
+    if new_edits:  # will happen only for _local
+        local = []
+        for i, doc in enumerate(docs):
+            if doc['_id'].startswith('_local/'):
+                ok, id, newrev = couch.local_put(doc['_id'][7:], doc)
+                local.append(i)
+                resp.append({
+                    'ok': ok,
+                    'id': id,
+                    'rev': newrev
+                } if ok else {'ok': False, 'id': id, 'error': 'error'})
+            else:
+                resp.append({'ok': False, 'error': 'unauthorized'})
+        return jsonify(resp), 200
 
-    return jsonify(couch.bulkdocs(docs))
+    else:  # the replicated docs to save
+        resp, code = couch.bulkdocs(docs)
+        return jsonify(resp), code
 
 
 if __name__ == "__main__":

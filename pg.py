@@ -10,5 +10,9 @@ def pg():
     return conn.cursor()
 
 
+def rollback():
+    conn.rollback()
+
+
 def commit():
     conn.commit()

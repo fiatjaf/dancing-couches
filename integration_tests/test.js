@@ -20,12 +20,12 @@ describe('integration', function () {
     // cleaning up local db
     // remote doesn't need to be cleared as it should have been started out clear already
     return Promise.resolve().then(function () {
-      return new PouchDB('pouch-test-db')
+      return new PouchDB('test')
     }).then(function (db) {
       local = db
       return local.destroy()
     }).then(function () {
-      return new PouchDB('pouch-test-db')
+      return new PouchDB('test')
     }).then(function (db) {
       local = db
     })
@@ -33,9 +33,17 @@ describe('integration', function () {
 
   describe('replication', function () {
     it('should replicate from remote to an empty local', function () {
-      return Promise.resolve().then(function () {
-        return local.replicate.from(remote)
-      })
+      return Promise.resolve()
+        .then(() => local.replicate.from(remote))
+        .then((res) => console.log(res))
+        .catch(err => console.error(err.stack))
+    })
+    it('should replicate after changing docs locally', function () {
+      return Promise.resolve()
+        .then(() => local.put({_id: 'teams/lsoeucs', name: 'Landing Lunars'}))
+        .then(() => local.replicate.to(remote))
+        .then((res) => console.log(res))
+        .catch(err => console.error(err.stack))
     })
   })
 })
