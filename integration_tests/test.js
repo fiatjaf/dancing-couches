@@ -66,7 +66,7 @@ describe('integration', function () {
           expect(res.ok).to.be.true
           expect(res.docs_written).to.equal(1)
 
-          return fetch(remoteApp + '/teams/lsoeucs')
+          return fetch(remoteApp + '/api/db1/teams/lsoeucs')
             .then(r => r.json())
         })
         .then(res => {
@@ -77,7 +77,7 @@ describe('integration', function () {
           return local.put(match)
         })
         .then(res => local.replicate.to(remote))
-        .then(() => fetch(remoteApp + '/' + match._id).then(r => r.json()))
+        .then(() => fetch(remoteApp + '/api/db1/' + match._id).then(r => r.json()))
         .then(res => {
           delete res.last_update
           expect(res).to.deep.equal(match)
